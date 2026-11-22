@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Walmart Smart Business Analytics — Enterprise BI Platform</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<style>
+/* ============ DESIGN TOKENS ============ */
+:root{
+  --navy:#0B1220;
+  --navy-2:#101a2e;
+  --navy-3:#16223a;
+  --blue:#2563EB;
+  --cyan:#22D3EE;
+  --teal:#14B8A6;
+  --text:#E6EDF7;
+  --text-dim:#8FA3BF;
+  --line:rgba(99,140,200,.14);
+  --line-2:rgba(99,140,200,.25);
+  --good:#22C55E;
+  --warn:#F59E0B;
+  --bad:#EF4444;
+  --radius:16px;
+  --shadow:0 18px 50px rgba(2,8,20,.55);
+  --glow:0 0 24px rgba(34,211,238,.25);
+  --font:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--font);
+  background:radial-gradient(1200px 600px at 80% -10%,rgba(37,99,235,.18),transparent 60%),
+             radial-gradient(900px 500px at 0% 110%,rgba(20,184,166,.10),transparent 55%),
+             var(--navy);
+  color:var(--text);
+  overflow-x:hidden;
+}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(99,140,200,.28);border-radius:20px}
+::-webkit-scrollbar-thumb:hover{background:rgba(34,211,238,.4)}
+
+/* ============ LAYOUT ============ */
+.app{display:flex;min-height:100vh}
+
+/* ============ SIDEBAR ============ */
+.sidebar{
+  width:268px;flex-shrink:0;
+  background:linear-gradient(180deg,rgba(16,26,46,.96),rgba(11,18,32,.96));
+  border-right:1px solid var(--line);
+  backdrop-filter:blur(16px);
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;
+  transition:width .35s cubic-bezier(.4,0,.2,1);
+  z-index:40;
+}
+.sidebar.collapsed{width:78px}
+.brand{display:flex;align-items:center;gap:12px;padding:20px 18px;border-bottom:1px solid var(--line)}
+.brand-mark{
+  width:40px;height:40px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--blue),var(--cyan));
+  display:grid;place-items:center;font-weight:800;font-size:18px;color:#fff;
+  box-shadow:var(--glow);
+  letter-spacing:-1px;
+}
+.brand-text{white-space:nowrap;overflow:hidden}
+.brand-text h1{font-size:14px;font-weight:800;letter-spacing:.2px}
+.brand-text span{font-size:10.5px;color:var(--cyan);letter-spacing:2.4px;font-weight:600}
+.sidebar.collapsed .brand-text{display:none}
+
+.nav{flex:1;overflow-y:auto;padding:14px 10px}
+.nav-group-label{
+  font-size:10px;letter-spacing:2px;color:var(--text-dim);
+  padding:14px 12px 8px;font-weight:700;text-transform:uppercase;
+}
+.sidebar.collapsed .nav-group-label{visibility:hidden;height:18px}
+.nav-item{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 12px;border-radius:11px;cursor:pointer;
+  color:var(--text-dim);font-size:13.5px;font-weight:500;
+  transition:all .22s ease;position:relative;white-space:nowrap;
+  border:1px solid transparent;
+}
+.nav-item:hover{background:rgba(37,99,235,.12);color:var(--text);transform:translateX(2px)}
+.nav-item.active{
+  background:linear-gradient(90deg,rgba(37,99,235,.28),rgba(34,211,238,.08));
+  color:#fff;border-color:rgba(34,211,238,.28);
+  box-shadow:inset 3px 0 0 var(--cyan);
+}
+.nav-item svg{width:19px;height:19px;flex-shrink:0}
+.sidebar.collapsed .nav-item span{display:none}
+.sidebar.collapsed .nav-item{justify-content:center;padding:12px 0}
+
+.sidebar-footer{padding:14px;border-top:1px solid var(--line)}
+.ai-status{display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--text-dim)}
+.pulse{width:9px;height:9px;border-radius:50%;background:var(--good);box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.55)}70%{box-shadow:0 0 0 9px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+
+/* ============ MAIN ============ */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+
+/* ============ TOPBAR ============ */
+.topbar{
+  position:sticky;top:0;z-index:35;
+  display:flex;align-items:center;gap:16px;
+  padding:14px 26px;
+  background:rgba(11,18,32,.78);
+  backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--line);
+}
+.icon-btn{
+  width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
+  background:rgba(255,255,255,.04);border:1px solid var(--line);
+  color:var(--text-dim);cursor:pointer;transition:.2s;flex-shrink:0;
+}
+.icon-btn:hover{color:var(--cyan);border-color:var(--line-2);background:rgba(34,211,238,.1)}
+.topbar h2{font-size:16.5px;font-weight:700;letter-spacing:.2px}
+.topbar .crumb{font-size:11px;color:var(--text-dim);margin-top:2px}
+.topbar-spacer{flex:1}
+
+/* Search */
+.search{position:relative;width:300px;max-width:38vw}
+.search input{
+  width:100%;padding:10px 14px 10px 38px;border-radius:11px;
+  background:rgba(255,255,255,.04);border:1px solid var(--line);
+  color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:.2s;
+}
+.search input:focus{border-color:rgba(34,211,238,.5);box-shadow:0 0 0 3px rgba(34,211,238,.1)}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-dim)}
+
+/* Date filter */
+.date-filter{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:11px;padding:5px 10px}
+.date-filter select{
+  background:transparent;border:none;color:var(--text);font-family:var(--font);
+  font-size:12.5px;outline:none;cursor:pointer;
+}
+.date-filter select option{background:var(--navy-2);color:var(--text)}
+.date-filter label{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+
+/* Notification */
+.notif-wrap{position:relative}
+.notif-dot{position:absolute;top:6px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--bad);border:2px solid var(--navy)}
+.notif-panel{
+  position:absolute;right:0;top:48px;width:340px;max-height:420px;overflow-y:auto;
+  background:var(--navy-2);border:1px solid var(--line-2);border-radius:14px;
+  box-shadow:var(--shadow);padding:8px;display:none;z-index:60;
+}
+.notif-panel.open{display:block;animation:drop .25s ease}
+@keyframes drop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.notif-item{display:flex;gap:10px;padding:11px;border-radius:9px;transition:.2s;cursor:pointer}
+.notif-item:hover{background:rgba(255,255,255,.04)}
+.notif-item .n-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:14px;flex-shrink:0}
+.notif-item h5{font-size:12.5px;font-weight:600;margin-bottom:2px}
+.notif-item p{font-size:11px;color:var(--text-dim);line-height:1.4}
+.notif-item .time{font-size:10px;color:var(--text-dim);margin-top:3px;display:block}
+
+/* User */
+.user{display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:11px;cursor:pointer;transition:.2s}
+.user:hover{background:rgba(255,255,255,.05)}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--blue));display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff}
+.user-info{line-height:1.2}
+.user-info b{font-size:12.5px;display:block}
+.user-info span{font-size:10.5px;color:var(--text-dim)}
+
+/* ============ CONTENT ============ */
+.content{padding:24px 26px 60px;flex:1}
+.page{display:none}
+.page.active{display:block;animation:fadeUp .45s cubic-bezier(.2,.7,.3,1)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px}
+.page-head h3{font-size:22px;font-weight:800;letter-spacing:-.3px}
+.page-head p{color:var(--text-dim);font-size:13px;margin-top:4px;max-width:640px}
+.head-actions{display:flex;gap:9px;flex-wrap:wrap}
+
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 15px;border-radius:10px;font-size:12.5px;font-weight:600;
+  cursor:pointer;border:1px solid var(--line-2);background:rgba(255,255,255,.04);
+  color:var(--text);transition:.22s;font-family:var(--font);
+}
+.btn:hover{border-color:rgba(34,211,238,.5);color:var(--cyan);transform:translateY(-1px)}
+.btn.primary{background:linear-gradient(135deg,var(--blue),#3b82f6);border-color:transparent;box-shadow:0 8px 22px rgba(37,99,235,.4)}
+.btn.primary:hover{color:#fff;box-shadow:0 10px 28px rgba(37,99,235,.6)}
+.btn svg{width:15px;height:15px}
+
+/* KPI Grid */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:16px;margin-bottom:22px}
+.kpi{
+  position:relative;overflow:hidden;
+  background:linear-gradient(160deg,rgba(22,34,58,.92),rgba(16,26,46,.92));
+  border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px;transition:.3s;cursor:default;
+}
+.kpi:hover{transform:translateY(-4px);border-color:rgba(34,211,238,.35);box-shadow:0 16px 40px rgba(2,8,20,.6)}
+.kpi::after{content:"";position:absolute;inset:0;background:radial-gradient(400px 120px at 100% 0%,rgba(34,211,238,.12),transparent 70%);pointer-events:none;opacity:0;transition:.35s}
+.kpi:hover::after{opacity:1}
+.kpi-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.kpi-icon{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-size:18px}
+.kpi-label{font-size:11.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.2px;font-weight:700}
+.kpi-value{font-size:26px;font-weight:800;letter-spacing:-1px;margin:6px 0 4px;font-variant-numeric:tabular-nums}
+.kpi-foot{display:flex;align-items:center;gap:6px;font-size:11.5px}
+.trend{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-weight:700;font-size:11px}
+.trend.up{color:var(--good);background:rgba(34,197,94,.12)}
+.trend.down{color:var(--bad);background:rgba(239,68,68,.12)}
+.kpi-foot .muted{color:var(--text-dim)}
+
+/* Chart cards */
+.grid-2{display:grid;grid-template-columns:1.55fr 1fr;gap:18px;margin-bottom:18px}
+.grid-2.eq{grid-template-columns:1fr 1fr}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:18px}
+@media(max-width:1100px){.grid-2,.grid-2.eq,.grid-3{grid-template-columns:1fr}}
+.card{
+  background:linear-gradient(160deg,rgba(22,34,58,.78),rgba(16,26,46,.85));
+  border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 18px 12px;transition:.28s;position:relative;overflow:hidden;
+}
+.card:hover{border-color:var(--line-2)}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.card-head h4{font-size:14.5px;font-weight:700;letter-spacing:.1px}
+.card-head .sub{font-size:11px;color:var(--text-dim);margin-top:2px}
+.tag{font-size:10px;letter-spacing:1px;padding:3px 9px;border-radius:20px;font-weight:700;text-transform:uppercase}
+.tag.live{color:var(--cyan);background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.3)}
+.tag.sim{color:var(--warn);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3)}
+.tag.hist{color:var(--text-dim);background:rgba(143,163,191,.1);border:1px solid var(--line-2)}
+.chart-wrap{position:relative;width:100%;height:260px}
+.chart-wrap.sm{height:210px}
+.chart-wrap.lg{height:320px}
+
+/* Table */
+.table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:600px}
+thead th{
+  text-align:left;padding:11px 14px;font-size:10.5px;text-transform:uppercase;
+  letter-spacing:1.2px;color:var(--text-dim);font-weight:700;
+  background:rgba(255,255,255,.025);border-bottom:1px solid var(--line);white-space:nowrap;
+}
+tbody td{padding:11px 14px;border-bottom:1px solid rgba(99,140,200,.07);white-space:nowrap}
+tbody tr{transition:.18s;cursor:pointer}
+tbody tr:hover{background:rgba(37,99,235,.09)}
+tbody tr:last-child td{border-bottom:none}
+.badge{padding:2.5px 9px;border-radius:20px;font-size:10.5px;font-weight:700}
+.badge.g{color:var(--good);background:rgba(34,197,94,.12)}
+.badge.w{color:var(--warn);background:rgba(245,158,11,.12)}
+.badge.b{color:var(--bad);background:rgba(239,68,68,.12)}
+.badge.c{color:var(--cyan);background:rgba(34,211,238,.12)}
+.bar-mini{height:6px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;width:90px;display:inline-block;vertical-align:middle;margin-right:8px}
+.bar-mini>i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--blue),var(--cyan));transition:width .8s cubic-bezier(.2,.7,.3,1)}
+
+/* AI panel */
+.ai-panel{
+  background:linear-gradient(160deg,rgba(37,99,235,.14),rgba(20,184,166,.06));
+  border:1px solid rgba(34,211,238,.28);border-radius:var(--radius);
+  padding:20px;position:relative;overflow:hidden;
+}
+.ai-panel::before{
+  content:"";position:absolute;width:280px;height:280px;border-radius:50%;
+  background:radial-gradient(circle,rgba(34,211,238,.22),transparent 70%);
+  top:-120px;right:-80px;animation:float 8s ease-in-out infinite;pointer-events:none;
+}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(20px)}}
+.ai-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.ai-orb{
+  width:44px;height:44px;border-radius:50%;flex-shrink:0;
+  background:conic-gradient(from 0deg,var(--blue),var(--cyan),var(--teal),var(--blue));
+  display:grid;place-items:center;animation:spin 6s linear infinite;box-shadow:var(--glow);
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ai-orb span{width:30px;height:30px;border-radius:50%;background:var(--navy-2);display:grid;place-items:center;font-size:14px;animation:spin 6s linear infinite reverse}
+.ai-head h4{font-size:15.5px;font-weight:800}
+.ai-head p{font-size:11.5px;color:var(--text-dim)}
+.insight{
+  display:flex;gap:12px;padding:13px;border-radius:12px;
+  background:rgba(11,18,32,.55);border:1px solid var(--line);margin-bottom:10px;
+  transition:.22s;animation:fadeUp .5s both;
+}
+.insight:hover{border-color:rgba(34,211,238,.35);transform:translateX(3px)}
+.insight .ic{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-size:15px;flex-shrink:0}
+.insight b{font-size:12.5px;display:block;margin-bottom:3px}
+.insight p{font-size:11.5px;color:var(--text-dim);line-height:1.5}
+.insight .conf{font-size:10px;color:var(--cyan);margin-top:5px;font-weight:600;letter-spacing:.5px}
+
+/* Chat */
+.chat-box{display:flex;flex-direction:column;height:380px}
+.chat-log{flex:1;overflow-y:auto;padding:8px 4px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:85%;padding:10px 14px;border-radius:13px;font-size:12.5px;line-height:1.55;animation:fadeUp .3s}
+.msg.bot{background:rgba(37,99,235,.16);border:1px solid rgba(34,211,238,.22);align-self:flex-start;border-bottom-left-radius:4px}
+.msg.user{background:rgba(20,184,166,.18);border:1px solid rgba(20,184,166,.3);align-self:flex-end;border-bottom-right-radius:4px}
+.chat-input{display:flex;gap:8px;margin-top:10px}
+.chat-input input{
+  flex:1;padding:11px 14px;border-radius:11px;background:rgba(255,255,255,.05);
+  border:1px solid var(--line);color:var(--text);font-size:12.5px;font-family:var(--font);outline:none;
+}
+.chat-input input:focus{border-color:rgba(34,211,238,.5)}
+.chat-input button{
+  padding:0 18px;border-radius:11px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;font-weight:700;font-size:12.5px;
+  font-family:var(--font);transition:.2s;
+}
+.chat-input button:hover{box-shadow:0 8px 22px rgba(37,99,235,.5)}
+
+/* Data quality bars */
+.dq-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.dq-row .lbl{width:150px;font-size:12px;color:var(--text-dim);flex-shrink:0}
+.dq-track{flex:1;height:9px;border-radius:6px;background:rgba(255,255,255,.07);overflow:hidden}
+.dq-track>i{display:block;height:100%;border-radius:6px;transition:width 1s cubic-bezier(.2,.7,.3,1)}
+.dq-row .val{width:52px;text-align:right;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* Source cards */
+.source-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.source{
+  padding:15px;border-radius:13px;border:1px solid var(--line);
+  background:rgba(255,255,255,.025);transition:.25s;
+}
+.source:hover{border-color:rgba(34,211,238,.35);transform:translateY(-2px)}
+.source-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.source-top .ic{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:16px}
+.source b{font-size:13px;display:block}
+.source p{font-size:11.5px;color:var(--text-dim);margin-top:6px;line-height:1.5}
+.source .meta{display:flex;justify-content:space-between;margin-top:10px;font-size:10.5px;color:var(--text-dim)}
+
+/* Heatmap */
+.heatmap{display:grid;grid-template-columns:repeat(12,1fr);gap:5px}
+.heat-cell{aspect-ratio:1;border-radius:5px;transition:.2s;cursor:pointer;position:relative}
+.heat-cell:hover{transform:scale(1.18);z-index:2;box-shadow:0 0 0 2px var(--cyan)}
+
+/* Toast */
+.toast-wrap{position:fixed;bottom:22px;right:22px;z-index:200;display:flex;flex-direction:column;gap:10px}
+.toast{
+  display:flex;gap:11px;align-items:center;padding:13px 16px;border-radius:12px;
+  background:var(--navy-2);border:1px solid var(--line-2);box-shadow:var(--shadow);
+  font-size:12.5px;min-width:260px;animation:slideIn .35s cubic-bezier(.2,.7,.3,1);
+}
+@keyframes slideIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+.toast .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:14px;flex-shrink:0}
+
+/* Modal */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(2,8,20,.72);backdrop-filter:blur(6px);
+  z-index:150;display:none;place-items:center;padding:20px;
+}
+.modal-bg.open{display:grid;animation:fade .25s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.modal{
+  width:100%;max-width:560px;background:var(--navy-2);border:1px solid var(--line-2);
+  border-radius:18px;padding:24px;box-shadow:var(--shadow);animation:fadeUp .3s;
+  max-height:88vh;overflow-y:auto;
+}
+.modal h3{font-size:18px;margin-bottom:6px}
+.modal .m-sub{color:var(--text-dim);font-size:12.5px;margin-bottom:18px}
+.modal-close{float:right;cursor:pointer;color:var(--text-dim);font-size:20px;line-height:1;transition:.2s}
+.modal-close:hover{color:var(--bad)}
+
+/* Responsive */
+@media(max-width:860px){
+  .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);width:268px}
+  .sidebar.mobile-open{transform:none;box-shadow:var(--shadow)}
+  .search{width:170px}
+  .user-info{display:none}
+  .content{padding:18px 14px 60px}
+  .topbar{padding:12px 14px}
+}
+@media(max-width:560px){
+  .search{display:none}
+  .date-filter label{display:none}
+  .kpi-value{font-size:22px}
+}
+.mobile-only{display:none}
+@media(max-width:860px){.mobile-only{display:grid}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">W</div>
+      <div class="brand-text">
+        <h1>Walmart Smart</h1>
+        <span>ANALYTICS</span>
+      </div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sidebar-footer">
+      <div class="ai-status">
+        <span class="pulse"></span>
+        <span id="aiStatusTxt">AI Engine Online</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <button class="icon-btn" id="toggleBtn" title="Toggle sidebar" aria-label="Toggle sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <div>
+        <h2 id="pageTitle">Executive Overview</h2>
+        <div class="crumb" id="pageCrumb">Home / Executive Overview</div>
+      </div>
+      <div class="topbar-spacer"></div>
+
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="globalSearch" placeholder="Search metrics, products, stores…" />
+      </div>
+
+      <div class="date-filter">
+        <label>Range</label>
+        <select id="dateRange">
+          <option value="30">Last 30 days</option>
+          <option value="90" selected>Last 90 days</option>
+          <option value="180">Last 6 months</option>
+          <option value="365">Last 12 months</option>
+          <option value="all">All history</option>
+        </select>
+      </div>
+
+      <button class="icon-btn" id="exportBtn" title="Download report">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+      </button>
+
+      <div class="notif-wrap">
+        <button class="icon-btn" id="notifBtn" title="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          <span class="notif-dot"></span>
+        </button>
+        <div class="notif-panel" id="notifPanel"></div>
+      </div>
+
+      <div class="user">
+        <div class="avatar">AM</div>
+        <div class="user-info"><b>Alex Morgan</b><span>Enterprise Analyst</span></div>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="content" id="content"></main>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+<div class="modal-bg" id="modalBg"><div class="modal" id="modalBody"></div></div>
+
+<script>
+/* =========================================================
+   WALMART SMART ANALYTICS — APP CORE
+   Data layer is clearly separated so real APIs / DB can plug in.
+   ========================================================= */
+
+/* ---------- DATA LAYER (swap for real API) ---------- */
+/* 
+  NOTE: The provided train.csv contains historical Walmart-style weekly sales 
+  (Store, Dept, Date, Weekly_Sales, IsHoliday). Below is a representative
+  in-memory sample derived from that schema. It is DEMONSTRATION data.
+  To connect real data: replace `DataLayer.fetch*` with fetch() to your API.
+*/
+const DataLayer = (() => {
+  const HOLIDAY_DATES = new Set([
+    '2010-02-12','2010-09-10','2010-11-26','2010-12-31',
+    '2011-02-11','2011-09-09','2011-11-25','2011-12-30',
+    '2012-02-10','2012-09-07'
+  ]);
+
+  // Weekly records sampled from train.csv (Store 1, departments 1–13) + holidays
+  const RAW = [
+    // Store 1, Dept 1
+    ['2010-02-05',24924.5],['2010-02-12',46039.49],['2010-03-05',21827.9],['2010-04-02',57258.43],
+    ['2010-04-09',42960.91],['2010-06-04',17558.09],['2010-09-10',18194.74],['2010-10-29',38640.93],
+    ['2010-11-26',18820.29],['2010-12-24',55931.23],['2011-02-11',37887.17],['2011-04-22',50510.31],
+    ['2011-11-25',20911.25],['2011-12-23',46788.75],['2012-02-10',36988.49],['2012-04-06',57592.12],
+    ['2012-09-07',18322.37],['2012-10-05',21904.47],
+    // Store 1, Dept 2
+    ['2010-02-05',50605.27],['2010-02-12',44682.74],['2010-04-02',47450.5],['2010-08-06',50031.73],
+    ['2010-12-24',59889.32],['2011-02-11',47595.35],['2011-12-23',65615.36],['2012-02-10',50581.06],
+    ['2012-08-31',50995.5],['2012-10-05',48577.08],
+    // Store 1, Dept 3 (seasonal spike in Aug-Sep)
+    ['2010-02-05',13740.12],['2010-08-27',51159.17],['2011-08-26',49775.52],['2012-08-31',50701.3],
+    ['2012-09-07',18368.51],['2012-10-26',9350.9],
+    // Store 1, Dept 4
+    ['2010-02-05',39954.04],['2010-12-24',47893.23],['2011-11-25',46564.14],['2012-06-01',41566.55],
+    ['2012-07-06',44936.96],['2012-10-05',39311.93],
+    // Store 1, Dept 5 (holiday spikes)
+    ['2010-11-26',70158.86],['2010-12-24',85676.09],['2011-11-25',79340.15],['2011-12-23',61483.82],
+    ['2012-02-10',38096.04],['2012-02-17',46219.96],
+    // Store 1, Dept 6 (small)
+    ['2010-02-05',5749.03],['2010-12-24',28497.52],['2011-11-25',18629.83],['2011-12-23',18931.11],
+    ['2012-08-10',-139.65],['2012-10-26',4032.5],
+    // Store 1, Dept 7 (large holiday peaks)
+    ['2010-11-26',72635.06],['2010-12-17',96198.12],['2010-12-24',166697.72],
+    ['2011-11-25',71151.34],['2011-12-23',119302.15],['2012-10-26',21449.85],
+    // Store 1, Dept 8
+    ['2010-02-05',40129.01],['2010-12-24',41864],['2011-12-23',41062.58],['2012-10-05',42663.75],
+    // Store 1, Dept 9
+    ['2010-10-01',44977.91],['2010-11-05',48794.36],['2011-11-04',50675.72],['2012-03-30',50382.47],
+    ['2012-09-07',42920.95],['2012-10-26',41040.84],
+    // Store 1, Dept 10
+    ['2010-03-05',33299.27],['2011-03-25',42875.11],['2012-02-17',40409.5],['2012-07-06',39189.33],
+    // Store 1, Dept 11
+    ['2010-06-04',36263.69],['2011-06-03',38594.85],['2012-06-29',44553.45],['2012-10-26',22399.83],
+    // Store 1, Dept 12
+    ['2010-02-05',8449.54],['2011-03-18',15560.17],['2012-07-06',13887.61],['2012-10-26',8658.41],
+    // Store 1, Dept 13
+    ['2010-02-05',41969.29],['2010-04-02',38104.53],['2011-03-04',42277.37],['2012-09-07',43300.0]
+  ];
+
+  const DEPT_NAMES = {1:'Electronics',2:'Grocery',3:'Seasonal',4:'Home',5:'Holiday',6:'Pharmacy',
+    7:'Toys',8:'Apparel',9:'Sports',10:'Auto',11:'Pets',12:'Beauty',13:'Furniture'};
+
+  function makeRecord(row, idx){
+    const [date, sales] = row;
+    const dept = (idx % 13) + 1;
+    return {
+      date,
+      week: date,
+      store: 1 + (idx % 3),
+      dept,
+      department: DEPT_NAMES[dept],
+      sales: Number(sales),
+      isHoliday: HOLIDAY_DATES.has(date),
+      region: ['Southeast','Northeast','Midwest','South','West'][dept % 5],
+    };
+  }
+
+  // Expand with synthetic-but-plausible series around the sample points so charts look full
+  function buildTimeseries(){
+    const out = [];
+    const start = new Date('2010-02-05');
+    const end = new Date('2012-10-26');
+    const baseByDept = {1:20000,2:45000,3:15000,4:36000,5:22000,6:5000,7:26000,8:35000,9:28000,10:30000,11:25000,12:11000,13:38000};
+    let d = new Date(start); let i=0;
+    while(d <= end){
+      const ds = d.toISOString().slice(0,10);
+      for(let dept=1; dept<=13; dept++){
+        const base = baseByDept[dept];
+        const t = i / 52; // years
+        const season = 1 + 0.22*Math.sin((i/52)*2*Math.PI - Math.PI/2);
+        const holiday = HOLIDAY_DATES.has(ds) ? 1.9 : 1;
+        const trend = 1 + t*0.06;
+        const noise = 0.92 + ((Math.sin(i*12.9898 + dept*78.233)*43758.5453)%1+1)%1 * 0.16;
+        const sales = +(base * season * holiday * trend * noise).toFixed(2);
+        out.push({date:ds, store:1, dept, department:DEPT_NAMES[dept],
+          sales, isHoliday:HOLIDAY_DATES.has(ds),
+          region:['Southeast','Northeast','Midwest','South','West'][dept%5]});
+      }
+      d.setDate(d.getDate()+7); i++;
+    }
+    // Overlay exact CSV sample values where they exist
+    RAW.forEach((r,idx)=>{ const rec = makeRecord(r,idx);
+      const found = out.find(o=>o.date===rec.date && o.dept===rec.dept);
+      if(found) found.sales = rec.sales;
+    });
+    return out;
+  }
+
+  const TIMESERIES = buildTimeseries();
+
+  // Inventory (simulated operational table)
+  const INVENTORY = [
+    {sku:'WM-EL-1023',name:'Wireless Earbuds Pro',dept:'Electronics',stock:1240,reorder:800,turnover:7.2,forecast:980,status:'Healthy'},
+    {sku:'WM-GR-2210',name:'Organic Coffee 2lb',dept:'Grocery',stock:340,reorder:500,turnover:11.4,forecast:620,status:'Low'},
+    {sku:'WM-SE-3391',name:'Patio Heater',dept:'Seasonal',stock:88,reorder:150,turnover:3.1,forecast:210,status:'Critical'},
+    {sku:'WM-HM-4482',name:'Air Fryer XL',dept:'Home',stock:2100,reorder:900,turnover:6.8,forecast:1450,status:'Healthy'},
+    {sku:'WM-TO-5511',name:'Building Blocks Set',dept:'Toys',stock:640,reorder:700,turnover:9.2,forecast:890,status:'Low'},
+    {sku:'WM-AP-6602',name:'Athletic Tee',dept:'Apparel',stock:4800,reorder:2000,turnover:12.6,forecast:3100,status:'Healthy'},
+    {sku:'WM-AU-7710',name:'Synthetic Motor Oil',dept:'Auto',stock:410,reorder:450,turnover:8.9,forecast:520,status:'Low'},
+    {sku:'WM-PH-8821',name:'Vitamin D3 5000IU',dept:'Pharmacy',stock:1500,reorder:600,turnover:14.2,forecast:1100,status:'Healthy'},
+  ];
+
+  // Customers (segments)
+  const CUSTOMERS = [
+    {segment:'Value Seekers',share:34,avgSpend:82,retention:71,trend:+3.2},
+    {segment:'Families',share:26,avgSpend:148,retention:83,trend:+1.8},
+    {segment:'Convenience',share:19,avgSpend:56,retention:64,trend:-2.1},
+    {segment:'Premium',share:12,avgSpend:221,retention:89,trend:+5.4},
+    {segment:'Occasional',share:9,avgSpend:39,retention:41,trend:-4.7},
+  ];
+
+  // AI insights (rule-based demo; swap for real model endpoint)
+  function generateInsights(){
+    const latest = TIMESERIES.filter(r=>r.date >= '2012-08-01');
+    const holidayRows = latest.filter(r=>r.isHoliday);
+    const avgHoliday = holidayRows.reduce((a,b)=>a+b.sales,0)/Math.max(holidayRows.length,1);
+    const avgNormal = latest.filter(r=>!r.isHoliday).reduce((a,b)=>a+b.sales,0)/Math.max(latest.filter(r=>!r.isHoliday).length,1);
+    const lift = avgNormal ? ((avgHoliday/avgNormal -1)*100) : 0;
+    return [
+      {icon:'📈',color:'cyan',title:'Holiday lift detected',
+       body:`Holiday weeks are running ${lift.toFixed(1)}% above baseline. Allocate extra inventory and staffing for the next holiday cycle.`,
+       conf:'Confidence: 92%'},
+      {icon:'⚠️',color:'warn',title:'Low-stock risk — Seasonal & Grocery',
+       body:'WM-SE-3391 (Patio Heater) and WM-GR-2210 (Organic Coffee) are below reorder points. Suggested reorder within 5 days.',
+       conf:'Confidence: 88%'},
+      {icon:'📊',color:'teal',title:'Premium segment accelerating',
+       body:'Premium customers grew 5.4% in share with 89% retention. Consider an exclusive loyalty tier to capture high spend.',
+       conf:'Confidence: 81%'},
+      {icon:'🧠',color:'cyan',title:'Sales forecast next 4 weeks',
+       body:'Model projects a 6–9% week-over-week increase driven by seasonal demand in Seasonal & Toys departments.',
+       conf:'Confidence: 76%'},
+    ];
+  }
+
+  // Filters: dynamic date range
+  function filtered(rangeDays){
+    if(rangeDays === 'all') return TIMESERIES;
+    const days = parseInt(rangeDays,10);
+    const maxDate = new Date(TIMESERIES[TIMESERIES.length-1].date);
+    const cutoff = new Date(maxDate); cutoff.setDate(cutoff.getDate() - days);
+    return TIMESERIES.filter(r => new Date(r.date) >= cutoff);
+  }
+
+  // KPIs from filtered data
+  function kpis(rows){
+    const totalRevenue = rows.reduce((a,b)=>a+b.sales,0);
+    const totalSales = rows.filter(r=>r.sales>0).length;
+    const totalTransactions = Math.round(totalSales * 1.6 + rows.length*0.4);
+    const profitMargin = 24.6 + (rows.length % 7)*0.3;
+    return {totalRevenue, totalSales, totalTransactions, profitMargin};
+  }
+
+  // Aggregations
+  function byMonth(rows){
+    const m = {};
+    rows.forEach(r=>{ const k=r.date.slice(0,7); m[k]=(m[k]||0)+r.sales; });
+    return Object.entries(m).sort().map(([k,v])=>({label:k,value:+v.toFixed(0)}));
+  }
+  function byRegion(rows){
+    const m={};
+    rows.forEach(r=>{ m[r.region]=(m[r.region]||0)+r.sales; });
+    return Object.entries(m).map(([k,v])=>({label:k,value:+v.toFixed(0)}));
+  }
+  function byDept(rows){
+    const m={};
+    rows.forEach(r=>{ m[r.department]=(m[r.department]||0)+r.sales; });
+    return Object.entries(m).map(([k,v])=>({label:k,value:+v.toFixed(0)})).sort((a,b)=>b.value-a.value);
+  }
+  function forecast(rows, weeks=8){
+    const monthly = byMonth(rows);
+    if(monthly.length < 3) return [];
+    const last = monthly.slice(-6);
+    const avg = last.reduce((a,b)=>a+b.value,0)/last.length;
+    const growth = 1.03;
+    const out=[];
+    const start = new Date(monthly[monthly.length-1].label+'-01');
+    for(let i=1;i<=weeks;i++){
+      const d = new Date(start); d.setMonth(d.getMonth()+i);
+      out.push({label:d.toISOString().slice(0,7), value:+(avg*Math.pow(growth,i)).toFixed(0)});
+    }
+    return out;
+  }
+
+  // Search / drill
+  function search(q){
+    q=q.toLowerCase();
+    return TIMESERIES.filter(r=> r.department.toLowerCase().includes(q) || r.date.includes(q) || r.region.toLowerCase().includes(q));
+  }
+
+  return {TIMESERIES, INVENTORY, CUSTOMERS, generateInsights, filtered, kpis, byMonth, byRegion, byDept, forecast, search};
+})();
+
+/* =========================================================
+   NAVIGATION DEFINITION
+   ========================================================= */
+const NAV = [
+  {group:'Analytics'},
+  {id:'overview', label:'Executive Overview', icon:'M3 13h8V3H3v10Zm10 8h8V11h-8v10ZM3 21h8v-6H3v6Zm10-12h8V3h-8v6Z'},
+  {id:'sales', label:'Sales Analytics', icon:'M3 20V10h4v10H3Zm7 0V4h4v16h-4Zm7 0v-7h4v7h-4Z'},
+  {id:'inventory', label:'Inventory Analytics', icon:'M4 7l8-4 8 4-8 4-8-4Zm0 5l8 4 8-4m-16 5l8 4 8-4M4 7v10m16-10v10'},
+  {id:'customer', label:'Customer Analytics', icon:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 9a8 8 0 0 1 16 0'},
+  {group:'Intelligence'},
+  {id:'ai', label:'AI Insights', icon:'M12 3v3m0 12v3M3 12h3m12 0h3M6 6l2 2m8 8 2 2m0-12-2 2M8 16l-2 2'},
+  {id:'strategic', label:'Strategic Analytics', icon:'M3 3v18h18M7 14l4-4 4 4 5-6'},
+  {group:'Data'},
+  {id:'data', label:'Data Management', icon:'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3Zm0 0v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3'},
+];
+
+/* =========================================================
+   CHARTS REGISTRY (so we can destroy/update on filter change)
+   ========================================================= */
+const CHART_COLORS = {blue:'#2563EB',cyan:'#22D3EE',teal:'#14B8A6',warn:'#F59E0B',bad:'#EF4444',good:'#22C55E'};
+const chartRegistry = {};
+Chart.defaults.color = '#8FA3BF';
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.boxWidth = 8;
+Chart.defaults.plugins.tooltip.backgroundColor = '#101a2e';
+Chart.defaults.plugins.tooltip.borderColor = 'rgba(34,211,238,.4)';
+Chart.defaults.plugins.tooltip.borderWidth = 1;
+Chart.defaults.plugins.tooltip.padding = 10;
+Chart.defaults.plugins.tooltip.titleColor = '#fff';
+Chart.defaults.plugins.tooltip.bodyColor = '#E6EDF7';
+Chart.defaults.plugins.tooltip.cornerRadius = 8;
+
+function destroyChart(id){ if(chartRegistry[id]){ chartRegistry[id].destroy(); delete chartRegistry[id]; } }
+
+function makeChart(id, config){
+  destroyChart(id);
+  const el = document.getElementById(id);
+  if(!el) return;
+  chartRegistry[id] = new Chart(el, config);
+}
+
+const gridColor = 'rgba(99,140,200,.08)';
+const baseScales = {
+  x:{grid:{color:gridColor, drawBorder:false}, ticks:{maxRotation:0, autoSkip:true, maxTicksLimit:8}},
+  y:{grid:{color:gridColor, drawBorder:false}, ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}}
+};
+
+/* =========================================================
+   PAGE RENDERERS
+   ========================================================= */
+function renderKPIs(rows){
+  const k = DataLayer.kpis(rows);
+  const prev = DataLayer.kpis(DataLayer.filtered('all').slice(0, rows.length));
+  const revGrowth = prev.totalRevenue ? ((k.totalRevenue/prev.totalRevenue -1)*100) : 0;
+  const items = [
+    {label:'Total Revenue', value:'$'+fmt(k.totalRevenue), trend:revGrowth, icon:'💰', color:CHART_COLORS.cyan},
+    {label:'Total Sales', value:fmt(k.totalSales), trend:4.2, icon:'🛒', color:CHART_COLORS.blue},
+    {label:'Profit Margin', value:k.profitMargin.toFixed(1)+'%', trend:1.1, icon:'📈', color:CHART_COLORS.teal},
+    {label:'Transactions', value:fmt(k.totalTransactions), trend:2.8, icon:'🧾', color:CHART_COLORS.warn},
+  ];
+  return `<div class="kpi-grid">${items.map(i=>`
+    <div class="kpi">
+      <div class="kpi-top">
+        <div>
+          <div class="kpi-label">${i.label}</div>
+          <div class="kpi-value">${i.value}</div>
+        </div>
+        <div class="kpi-icon" style="background:${hexA(i.color,.14)};color:${i.color}">${i.icon}</div>
+      </div>
+      <div class="kpi-foot">
+        <span class="trend ${i.trend>=0?'up':'down'}">${i.trend>=0?'▲':'▼'} ${Math.abs(i.trend).toFixed(1)}%</span>
+        <span class="muted">vs prior period</span>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+function fmt(n){
+  if(n >= 1e9) return (n/1e9).toFixed(2)+'B';
+  if(n >= 1e6) return (n/1e6).toFixed(2)+'M';
+  if(n >= 1e3) return (n/1e3).toFixed(1)+'K';
+  return n.toLocaleString(undefined,{maximumFractionDigits:0});
+}
+function hexA(hex,a){ const n=parseInt(hex.slice(1),16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }
+
+/* ---------- PAGE: OVERVIEW ---------- */
+function pageOverview(rows){
+  const month = DataLayer.byMonth(rows);
+  const regions = DataLayer.byRegion(rows);
+  const k = DataLayer.kpis(rows);
+  const insights = DataLayer.generateInsights().slice(0,2);
+  return `
+  <div class="page-head">
+    <div>
+      <h3>Executive Overview</h3>
+      <p>Real-time business performance across revenue, sales, and transactions. Data source: internal sales records (historical demonstration data).</p>
+    </div>
+    <div class="head-actions">
+      <button class="btn" onclick="downloadReport('overview')">⬇ Export Report</button>
+      <button class="btn primary" onclick="go('ai')">✨ Ask AI Analyst</button>
+    </div>
+  </div>
+
+  ${renderKPIs(rows)}
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head">
+        <div><h4>Revenue Trends</h4><div class="sub">Monthly aggregated revenue</div></div>
+        <span class="tag hist">Historical</span>
+      </div>
+      <div class="chart-wrap lg"><canvas id="chOverviewRevenue"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div><h4>Sales by Region</h4><div class="sub">Contribution share</div></div>
+        <span class="tag live">Live</span>
+      </div>
+      <div class="chart-wrap lg"><canvas id="chOverviewRegion"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-2 eq">
+    <div class="card">
+      <div class="card-head">
+        <div><h4>Business Performance Overview</h4><div class="sub">Sales vs. Holiday impact</div></div>
+        <span class="tag hist">Historical</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chOverviewPerf"></canvas></div>
+    </div>
+    <div class="ai-panel">
+      <div class="ai-head">
+        <div class="ai-orb"><span>✨</span></div>
+        <div><h4>AI Executive Summary</h4><p>Automated insights from current data</p></div>
+      </div>
+      ${insights.map(i=>`
+        <div class="insight">
+          <div class="ic" style="background:${i.color==='warn'?hexA(CHART_COLORS.warn,.15):hexA(CHART_COLORS.cyan,.15)};color:${i.color==='warn'?CHART_COLORS.warn:CHART_COLORS.cyan}">${i.icon}</div>
+          <div><b>${i.title}</b><p>${i.body}</p><div class="conf">${i.conf}</div></div>
+        </div>`).join('')}
+      <button class="btn" style="width:100%;justify-content:center;margin-top:8px" onclick="go('ai')">View all AI insights →</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div><h4>Top Performing Departments</h4><div class="sub">Ranked by total revenue</div></div>
+      <span class="tag hist">Historical</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Rank</th><th>Department</th><th>Revenue</th><th>Share</th><th>Performance</th></tr></thead>
+        <tbody id="overviewDeptTable"></tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+/* ---------- PAGE: SALES ---------- */
+function pageSales(rows){
+  const dept = DataLayer.byDept(rows);
+  const regions = DataLayer.byRegion(rows);
+  const months = DataLayer.byMonth(rows);
+  return `
+  <div class="page-head">
+    <div><h3>Sales Analytics</h3>
+      <p>Deep dive into sales performance by region, category, and time period. Filter with the date range above to update all charts.</p></div>
+    <div class="head-actions">
+      <button class="btn" onclick="downloadReport('sales')">⬇ Export CSV</button>
+    </div>
+  </div>
+
+  ${renderKPIs(rows)}
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div><h4>Monthly Revenue Trend</h4><div class="sub">With 8-week AI forecast overlay</div></div>
+        <span class="tag sim">Forecast</span></div>
+      <div class="chart-wrap lg"><canvas id="chSalesTrend"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h4>Sales by Product Category</h4><div class="sub">Department contribution</div></div>
+        <span class="tag hist">Historical</span></div>
+      <div class="chart-wrap lg"><canvas id="chSalesDept"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-head"><div><h4>Regional Split</h4><div class="sub">Share of revenue</div></div></div>
+      <div class="chart-wrap sm"><canvas id="chSalesRegion"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h4>Sales Growth</h4><div class="sub">Month-over-month %</div></div></div>
+      <div class="chart-wrap sm"><canvas id="chSalesGrowth"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h4>Holiday Impact</h4><div class="sub">Avg vs non-holiday weeks</div></div></div>
+      <div class="chart-wrap sm"><canvas id="chSalesHoliday"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div><h4>Top Performing Products</h4><div class="sub">Click a row to drill down</div></div>
+      <span class="tag hist">Historical</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Product</th><th>Dept</th><th>Revenue</th><th>Trend</th><th>Availability</th></tr></thead>
+        <tbody id="salesProductTable"></tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+/* ---------- PAGE: INVENTORY ---------- */
+function pageInventory(rows){
+  const inv = DataLayer.INVENTORY;
+  const critical = inv.filter(i=>i.status==='Critical').length;
+  const low = inv.filter(i=>i.status==='Low').length;
+  return `
+  <div class="page-head">
+    <div><h3>Inventory Analytics</h3>
+      <p>Stock levels, turnover, and AI-driven replenishment forecasting. Status indicators reflect simulated operational data.</p></div>
+    <div class="head-actions"><button class="btn primary" onclick="reorderAll()">🔄 Auto-Reorder Low Stock</button></div>
+  </div>
+
+  <div class="kpi-grid">
+    ${[
+      {label:'Total SKUs Tracked',value:inv.length,icon:'📦',color:CHART_COLORS.blue,trend:0},
+      {label:'Low Stock Alerts',value:low,icon:'⚠️',color:CHART_COLORS.warn,trend:low},
+      {label:'Critical Stock',value:critical,icon:'🚨',color:CHART_COLORS.bad,trend:critical},
+      {label:'Avg Turnover',value:(inv.reduce((a,b)=>a+b.turnover,0)/inv.length).toFixed(1)+'x',icon:'🔄',color:CHART_COLORS.teal,trend:1.2},
+    ].map(i=>`
+      <div class="kpi">
+        <div class="kpi-top"><div><div class="kpi-label">${i.label}</div><div class="kpi-value">${i.value}</div></div>
+          <div class="kpi-icon" style="background:${hexA(i.color,.14)};color:${i.color}">${i.icon}</div></div>
+        <div class="kpi-foot"><span class="muted">Simulated operational data</span></div>
+      </div>`).join('')}
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div><h4>Current Stock vs Forecast Demand</h4><div class="sub">Next 4-week projected demand</div></div>
+        <span class="tag sim">AI Forecast</span></div>
+      <div class="chart-wrap lg"><canvas id="chInvStockForecast"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h4>Inventory Turnover by Department</h4><div class="sub">Higher = faster movement</div></div></div>
+      <div class="chart-wrap lg"><canvas id="chInvTurnover"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div><h4>Inventory Status</h4><div class="sub">Product availability & reorder points</div></div>
+      <span class="tag live">Live</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>SKU</th><th>Product</th><th>Dept</th><th>Stock</th><th>Reorder Pt</th><th>Turnover</th><th>Status</th></tr></thead>
+        <tbody id="invTable"></tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+/* ---------- PAGE: CUSTOMER ---------- */
+function pageCustomer(rows){
+  const seg = DataLayer.CUSTOMERS;
+  return `
+  <div class="page-head">
+    <div><h3>Customer Analytics</h3>
+      <p>Segmentation, purchasing behavior, and retention intelligence. Data is derived from transaction patterns (demonstration).</p></div>
+  </div>
+
+  <div class="kpi-grid">
+    ${[
+      {label:'Active Segments',value:seg.length,icon:'👥',color:CHART_COLORS.blue},
+      {label:'Avg Retention',value:(seg.reduce((a,b)=>a+b.retention,0)/seg.length).toFixed(1)+'%',icon:'🔁',color:CHART_COLORS.teal},
+      {label:'Avg Basket',value:'$'+(seg.reduce((a,b)=>a+b.avgSpend,0)/seg.length).toFixed(0),icon:'🧺',color:CHART_COLORS.cyan},
+      {label:'Fastest Growing',value:'Premium',icon:'🚀',color:CHART_COLORS.good},
+    ].map(i=>`
+      <div class="kpi">
+        <div class="kpi-top"><div><div class="kpi-label">${i.label}</div><div class="kpi-value">${i.value}</div></div>
+          <div class="kpi-icon" style="background:${hexA(i.color,.14)};color:${i.color}">${i.icon}</div></div>
+        <div class="kpi-foot"><span class="muted">Simulated segment model</span></div>
+      </div>`).join('')}
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div><h4>Customer Segmentation</h4><div class="sub">Share of customer base</div></div></div>
+      <div class="chart-wrap lg"><canvas id="chCustSeg"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h4>Retention by Segment</h4><div class="sub">% of customers returning</div></div></div>
+      <div class="chart-wrap lg"><canvas id="chCustRetention"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div><h4>Purchasing Behavior</h4><div class="sub">Average spend & trend per segment</div></div></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Segment</th><th>Share</th><th>Avg Spend</th><th>Retention</th><th>Trend</th></tr></thead>
+        <tbody id="custTable"></tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+/* ---------- PAGE: AI ---------- */
+function pageAI(rows){
+  const insights = DataLayer.generateInsights();
+  return `
+  <div class="page-head">
+    <div><h3>AI Insights</h3>
+      <p>Predictive analytics, anomaly detection, and automated recommendations. Models run on the current filtered dataset.</p></div>
+    <div class="head-actions"><button class="btn primary" onclick="showToast('AI model retrained on latest data','✨','ok')">⟳ Retrain Models</button></div>
+  </div>
+
+  <div class="ai-panel" style="margin-bottom:18px">
+    <div class="ai-head">
+      <div class="ai-orb"><span>✨</span></div>
+      <div><h4>Automated Business Insights</h4><p>Generated ${new Date().toLocaleTimeString()} · ${insights.length} insights</p></div>
+    </div>
+    ${insights.map(i=>`
+      <div class="insight">
+        <div class="ic" style="background:${i.color==='warn'?hexA(CHART_COLORS.warn,.15):i.color==='teal'?hexA(CHART_COLORS.teal,.15):hexA(CHART_COLORS.cyan,.15)};color:${i.color==='warn'?CHART_COLORS.warn:i.color==='teal'?CHART_COLORS.teal:CHART_COLORS.cyan}">${i.icon}</div>
+        <div><b>${i.title}</b><p>${i.body}</p><div class="conf">${i.conf}</div></div>
+      </div>`).join('')}
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div><h4>AI Sales Forecasting</h4><div class="sub">Historical + 8-week prediction</div></div>
+        <span class="tag sim">Simulated</span></div>
+      <div class="chart-wrap lg"><canvas id="chAIForecast"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h4>Anomaly Detection</h4><div class="sub">Deviation from expected range</div></div>
+        <span class="tag sim">Simulated</span></div>
+      <div class="chart-wrap lg"><canvas id="chAIAnomaly"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-2 eq">
+    <div class="card">
+      <div class="card-head"><div><h4>Predictive Inventory Risk</h4><div class="sub">Probability of stockout (next 30 days)</div></div></div>
+      <div class="chart-wrap"><canvas id="chAIRisk"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h4>Natural Language Analytics Assistant</h4><div class="sub">Ask about business performance</div></div>
+        <span class="tag live">Live</span></div>
+      <div class="chat-box">
+        <div class="chat-log" id="chatLog">
+          <div class="msg bot">Hi! I'm your AI analyst. Ask me about sales, inventory, customers, or forecasts. Try: <i>"What is the revenue trend?"</i> or <i>"Which departments are at risk?"</i></div>
+        </div>
+        <div class="chat-input">
+          <input id="chatInput" placeholder="Ask a question about your business…" onkeydown="if(event.key==='Enter')sendChat()" />
+          <button onclick="sendChat()">Ask</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- PAGE: DATA ---------- */
+function pageData(){
+  const sources = [
+    {icon:'🗄️',color:CHART_COLORS.blue,name:'Sales Transactions DB',desc:'Internal POS / ERP data warehouse.',status:'Connected',freq:'Real-time',quality:98.4},
+    {icon:'📦',color:CHART_COLORS.teal,name:'Inventory System',desc:'Warehouse & store-level stock feeds.',status:'Connected',freq:'Every 15 min',quality:96.1},
+    {icon:'👥',color:CHART_COLORS.cyan,name:'CRM / Customer 360',desc:'Loyalty & customer profile data.',status:'Connected',freq:'Hourly',quality:94.7},
+    {icon:'🌐',color:CHART_COLORS.warn,name:'Market & Economic API',desc:'External indicators, competitor pricing.',status:'Connected',freq:'Daily',quality:88.2},
+    {icon:'☁️',color:CHART_COLORS.good,name:'Cloud Data Lake',desc:'Strategic & historical aggregated data.',status:'Connected',freq:'Batch (nightly)',quality:99.1},
+    {icon:'📊',color:CHART_COLORS.bad,name:'Third-party Demographics',desc:'External segmentation provider.',status:'Degraded',freq:'Weekly',quality:71.5},
+  ];
+  return `
+  <div class="page-head">
+    <div><h3>Data Management</h3>
+      <p>Data source health, integration status, quality indicators, and update frequency. Architecture is prepared for real API/database connection.</p></div>
+    <div class="head-actions"><button class="btn" onclick="showToast('Data sync scheduled','🔄','ok')">⟳ Sync All Sources</button></div>
+  </div>
+
+  <div class="grid-2 eq">
+    <div class="card">
+      <div class="card-head"><div><h4>Data Quality & Completeness</h4><div class="sub">Across connected sources</div></div></div>
+      ${[
+        {l:'Completeness',v:97.2,c:CHART_COLORS.good},
+        {l:'Accuracy',v:94.6,c:CHART_COLORS.teal},
+        {l:'Consistency',v:91.3,c:CHART_COLORS.cyan},
+        {l:'Timeliness',v:96.8,c:CHART_COLORS.good},
+        {l:'Validity',v:89.5,c:CHART_COLORS.warn},
+      ].map(d=>`
+        <div class="dq-row">
+          <div class="lbl">${d.l}</div>
+          <div class="dq-track"><i style="width:${d.v}%;background:${d.c}"></i></div>
+          <div class="val" style="color:${d.c}">${d.v}%</div>
+        </div>`).join('')}
+      <div style="margin-top:14px;padding:11px;border-radius:10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);font-size:11.5px;color:#FCD34D">
+        ⚠️ Missing-data alert: Third-party Demographics source has 12.4% null fields this week.
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h4>Data Types</h4><div class="sub">Classification of all connected data</div></div></div>
+      <div style="display:flex;flex-direction:column;gap:12px;padding-top:6px">
+        ${[
+          {t:'Operational Data',d:'Daily POS, inventory movements',c:CHART_COLORS.cyan},
+          {t:'Real-Time Data',d:'Live transactions & stock updates',c:CHART_COLORS.good},
+          {t:'Strategic Data',d:'Aggregated KPIs, forecasts, market',c:CHART_COLORS.blue},
+          {t:'External Data',d:'Competitor & economic indicators',c:CHART_COLORS.warn},
+        ].map(x=>`
+          <div style="display:flex;gap:11px;align-items:center">
+            <span style="width:9px;height:9px;border-radius:50%;background:${x.c};flex-shrink:0;box-shadow:0 0 8px ${x.c}"></span>
+            <div><b style="font-size:12.5px">${x.t}</b><div style="font-size:11px;color:var(--text-dim)">${x.d}</div></div>
+          </div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <div class="card-head"><div><h4>Connected Data Sources</h4><div class="sub">Integration health & freshness</div></div>
+      <span class="tag live">6 sources</span></div>
+    <div class="source-grid">
+      ${sources.map(s=>`
+        <div class="source">
+          <div class="source-top">
+            <div class="ic" style="background:${hexA(s.color,.14)};color:${s.color}">${s.icon}</div>
+            <span class="badge ${s.status==='Connected'?'g':s.status==='Degraded'?'w':'b'}">${s.status}</span>
+          </div>
+          <b>${s.name}</b>
+          <p>${s.desc}</p>
+          <div class="meta"><span>⏱ ${s.freq}</span><span>Quality ${s.quality}%</span></div>
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <div class="card-head"><div><h4>Integration Architecture</h4><div class="sub">Prepared for real API & database connection</div></div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;padding:8px 0">
+      ${[
+        {n:'Frontend',d:'Components & charts',c:CHART_COLORS.cyan},
+        {n:'API Layer',d:'REST / GraphQL gateway',c:CHART_COLORS.blue},
+        {n:'Analytics Engine',d:'Aggregations & models',c:CHART_COLORS.teal},
+        {n:'Data Warehouse',d:'Historical & real-time',c:CHART_COLORS.good},
+        {n:'External APIs',d:'Market & economic',c:CHART_COLORS.warn},
+      ].map((x,i,arr)=>`
+        <div style="text-align:center;padding:14px 10px;border-radius:11px;background:rgba(255,255,255,.03);border:1px solid var(--line);position:relative">
+          <div style="font-size:12px;font-weight:700;color:${x.c}">${x.n}</div>
+          <div style="font-size:10.5px;color:var(--text-dim);margin-top:3px">${x.d}</div>
+        </div>`).join('')}
+    </div>
+    <p style="font-size:11px;color:var(--text-dim);margin-top:10px">The <code>DataLayer</code> object isolates all data access. Replace its methods with <code>fetch()</code> calls to connect live endpoints without touching UI code.</p>
+  </div>`;
+}
+
+/* ---------- PAGE: STRATEGIC ---------- */
+function pageStrategic(rows){
+  const months = DataLayer.byMonth(rows).slice(-8);
+  return `
+  <div class="page-head">
+    <div><h3>Strategic Analytics</h3>
+      <p>Market trends, competitor positioning, economic indicators, and business performance comparison.</p></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div><h4>Market Trends</h4><div class="sub">Category growth vs market average</div></div>
+        <span class="tag sim">Simulated</span></div>
+      <div class="chart-wrap lg"><canvas id="chStratMarket"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h4>Competitor Analysis</h4><div class="sub">Relative market share index</div></div>
+        <span class="tag sim">Simulated</span></div>
+      <div class="chart-wrap lg"><canvas id="chStratCompetitor"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-2 eq">
+    <div class="card">
+      <div class="card-head"><div><h4>Economic Indicators</h4><div class="sub">Indexed to 100 (baseline)</div></div></div>
+      <div class="chart-wrap"><canvas id="chStratEcon"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h4>Business Performance Comparison</h4><div class="sub">This period vs prior period</div></div></div>
+      <div class="chart-wrap"><canvas id="chStratCompare"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div><h4>Strategic Heatmap</h4><div class="sub">Department performance intensity by month</div></div>
+      <span class="tag hist">Historical</span></div>
+    <div id="heatmap" style="padding:6px 0"></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:10.5px;color:var(--text-dim)">
+      <span>Low</span>
+      <div style="width:120px;height:8px;border-radius:4px;background:linear-gradient(90deg,rgba(37,99,235,.2),var(--blue),var(--cyan))"></div>
+      <span>High</span>
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   PAGE MOUNT & CHART WIRING
+   ========================================================= */
+const PAGES = {
+  overview: {title:'Executive Overview', crumb:'Home / Executive Overview', render:pageOverview},
+  sales: {title:'Sales Analytics', crumb:'Home / Sales Analytics', render:pageSales},
+  inventory: {title:'Inventory Analytics', crumb:'Home / Inventory Analytics', render:pageInventory},
+  customer: {title:'Customer Analytics', crumb:'Home / Customer Analytics', render:pageCustomer},
+  ai: {title:'AI Insights', crumb:'Intelligence / AI Insights', render:pageAI},
+  strategic: {title:'Strategic Analytics', crumb:'Intelligence / Strategic Analytics', render:pageStrategic},
+  data: {title:'Data Management', crumb:'Data / Data Management', render:pageData},
+};
+
+let currentPage = 'overview';
+
+function go(page){
+  if(!PAGES[page]) return;
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.page===page));
+  document.getElementById('pageTitle').textContent = PAGES[page].title;
+  document.getElementById('pageCrumb').textContent = PAGES[page].crumb;
+  renderCurrent();
+  window.scrollTo({top:0, behavior:'smooth'});
+  if(window.innerWidth <= 860) sidebar.classList.remove('mobile-open');
+}
+
+function renderCurrent(){
+  const content = document.getElementById('content');
+  const rows = DataLayer.filtered(document.getElementById('dateRange').value);
+  content.innerHTML = `<div class="page active">${PAGES[currentPage].render(rows)}</div>`;
+  wirePage(currentPage, rows);
+}
+
+/* ---- Wire charts + tables for each page ---- */
+function wirePage(page, rows){
+  // clean old chart refs
+  Object.keys(chartRegistry).forEach(destroyChart);
+
+  if(page==='overview') wireOverview(rows);
+  if(page==='sales') wireSales(rows);
+  if(page==='inventory') wireInventory(rows);
+  if(page==='customer') wireCustomer(rows);
+  if(page==='ai') wireAI(rows);
+  if(page==='strategic') wireStrategic(rows);
+}
+
+function wireOverview(rows){
+  const months = DataLayer.byMonth(rows);
+  const regions = DataLayer.byRegion(rows);
+  const dept = DataLayer.byDept(rows);
+  const total = dept.reduce((a,b)=>a+b.value,0);
+
+  makeChart('chOverviewRevenue',{
+    type:'line',
+    data:{labels:months.map(m=>m.label),
+      datasets:[{
+        label:'Revenue', data:months.map(m=>m.value),
+        borderColor:CHART_COLORS.cyan, backgroundColor:hexA(CHART_COLORS.cyan,.12),
+        fill:true, tension:.4, borderWidth:2.5, pointRadius:0, pointHoverRadius:5,
+        pointHoverBackgroundColor:CHART_COLORS.cyan,
+      }]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      interaction:{intersect:false,mode:'index'}, scales:baseScales}
+  });
+
+  makeChart('chOverviewRegion',{
+    type:'doughnut',
+    data:{labels:regions.map(r=>r.label),
+      datasets:[{data:regions.map(r=>r.value),
+        backgroundColor:[CHART_COLORS.blue,CHART_COLORS.cyan,CHART_COLORS.teal,CHART_COLORS.warn,CHART_COLORS.good],
+        borderColor:'#101a2e', borderWidth:3, hoverOffset:8}]},
+    options:{responsive:true, maintainAspectRatio:false, cutout:'62%',
+      plugins:{legend:{position:'bottom', labels:{padding:12, pointStyle:'circle'}}}}
+  });
+
+  const holidayRows = rows.filter(r=>r.isHoliday);
+  const nonHol = rows.filter(r=>!r.isHoliday);
+  makeChart('chOverviewPerf',{
+    type:'bar',
+    data:{labels:months.slice(-8).map(m=>m.label),
+      datasets:[
+        {label:'Holiday weeks', data:months.slice(-8).map((m,i)=> holidayRows.length? Math.round(holidayRows[i%holidayRows.length].sales):0),
+          backgroundColor:hexA(CHART_COLORS.warn,.7), borderRadius:6},
+        {label:'Regular weeks', data:months.slice(-8).map((m,i)=> nonHol.length? Math.round(nonHol[i%nonHol.length].sales):0),
+          backgroundColor:hexA(CHART_COLORS.blue,.7), borderRadius:6},
+      ]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom', labels:{padding:14, pointStyle:'rectRounded'}}},
+      scales:{x:{...baseScales.x, stacked:false}, y:{...baseScales.y, stacked:false}}}
+  });
+
+  const tbody = document.getElementById('overviewDeptTable');
+  if(tbody){
+    tbody.innerHTML = dept.slice(0,8).map((d,i)=>{
+      const share = total? (d.value/total*100):0;
+      return `<tr onclick="showToast('Drill-down: ${d.label}','🔍','ok')">
+        <td><b>#${i+1}</b></td>
+        <td>${d.label}</td>
+        <td style="font-weight:700;color:${CHART_COLORS.cyan}">$${fmt(d.value)}</td>
+        <td>${share.toFixed(1)}%</td>
+        <td><div class="bar-mini"><i style="width:${share}%"></i></div></td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+function wireSales(rows){
+  const months = DataLayer.byMonth(rows);
+  const dept = DataLayer.byDept(rows);
+  const regions = DataLayer.byRegion(rows);
+  const fc = DataLayer.forecast(rows, 6);
+
+  // Trend + forecast
+  const histLabels = months.map(m=>m.label);
+  const fcLabels = fc.map(f=>f.label);
+  const histData = months.map(m=>m.value);
+  const fcData = new Array(months.length-1).fill(null);
+  fcData.push(histData[histData.length-1]);
+  fc.forEach(f=>fcData.push(f.value));
+  makeChart('chSalesTrend',{
+    type:'line',
+    data:{labels:[...histLabels, ...fcLabels],
+      datasets:[
+        {label:'Historical revenue', data:[...histData, ...new Array(fc.length).fill(null)],
+          borderColor:CHART_COLORS.cyan, backgroundColor:hexA(CHART_COLORS.cyan,.1), fill:true, tension:.4, borderWidth:2.5, pointRadius:0},
+        {label:'AI forecast', data:fcData,
+          borderColor:CHART_COLORS.warn, borderDash:[6,5], tension:.4, borderWidth:2.5, pointRadius:3,
+          pointBackgroundColor:CHART_COLORS.warn, fill:false}
+      ]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom', labels:{padding:14}}},
+      interaction:{intersect:false,mode:'index'}, scales:baseScales}
+  });
+
+  // Dept bar
+  makeChart('chSalesDept',{
+    type:'bar',
+    data:{labels:dept.map(d=>d.label),
+      datasets:[{data:dept.map(d=>d.value),
+        backgroundColor:dept.map((_,i)=> i<3? CHART_COLORS.cyan : hexA(CHART_COLORS.blue,.65)),
+        borderRadius:7, hoverBackgroundColor:CHART_COLORS.teal}]},
+    options:{responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{legend:{display:false}},
+      scales:{x:{...baseScales.y}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}
+  });
+
+  makeChart('chSalesRegion',{
+    type:'polarArea',
+    data:{labels:regions.map(r=>r.label),
+      datasets:[{data:regions.map(r=>r.value),
+        backgroundColor:[hexA(CHART_COLORS.blue,.7),hexA(CHART_COLORS.cyan,.7),hexA(CHART_COLORS.teal,.7),hexA(CHART_COLORS.warn,.7),hexA(CHART_COLORS.good,.7)],
+        borderColor:'#101a2e', borderWidth:2}]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom', labels:{padding:10, font:{size:10}}}},
+      scales:{r:{grid:{color:gridColor}, ticks:{display:false}}}}
+  });
+
+  // Growth
+  const growth = months.slice(1).map((m,i)=>{
+    const prev = months[i].value;
+    return prev? +(((m.value/prev)-1)*100).toFixed(1):0;
+  });
+  makeChart('chSalesGrowth',{
+    type:'bar',
+    data:{labels:months.slice(1).map(m=>m.label),
+      datasets:[{data:growth,
+        backgroundColor:growth.map(g=> g>=0? hexA(CHART_COLORS.good,.75) : hexA(CHART_COLORS.bad,.75)),
+        borderRadius:5}]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw+'%'}}},
+      scales:{x:{...baseScales.x, ticks:{display:false}}, y:{...baseScales.y, ticks:{callback:v=>v+'%'}}}}
+  });
+
+  // Holiday vs non
+  const hol = rows.filter(r=>r.isHoliday).reduce((a,b)=>a+b.sales,0)/Math.max(rows.filter(r=>r.isHoliday).length,1);
+  const non = rows.filter(r=>!r.isHoliday).reduce((a,b)=>a+b.sales,0)/Math.max(rows.filter(r=>!r.isHoliday).length,1);
+  makeChart('chSalesHoliday',{
+    type:'bar',
+    data:{labels:['Non-Holiday','Holiday'],
+      datasets:[{data:[non,hol],
+        backgroundColor:[hexA(CHART_COLORS.blue,.75),hexA(CHART_COLORS.warn,.85)],
+        borderRadius:8}]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false}}, y:{...baseScales.y}}}
+  });
+
+  // Product table
+  const tbody = document.getElementById('salesProductTable');
+  if(tbody){
+    tbody.innerHTML = dept.slice(0,7).map((d,i)=>{
+      const trend = ((Math.sin(i+1)*4)+3.5).toFixed(1);
+      const avail = 92 - i*3;
+      return `<tr onclick="drillDown('${d.label}',${d.value})">
+        <td><b>${d.label} Top Seller</b></td>
+        <td>${d.label}</td>
+        <td style="color:${CHART_COLORS.cyan};font-weight:700">$${fmt(d.value)}</td>
+        <td><span class="trend ${+trend>=0?'up':'down'}">${+trend>=0?'▲':'▼'} ${Math.abs(trend)}%</span></td>
+        <td><div class="bar-mini"><i style="width:${avail}%;background:${avail>85?CHART_COLORS.good:CHART_COLORS.warn}"></i></div>${avail}%</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+function wireInventory(){
+  const inv = DataLayer.INVENTORY;
+  makeChart('chInvStockForecast',{
+    type:'bar',
+    data:{labels:inv.map(i=>i.name.split(' ').slice(0,2).join(' ')),
+      datasets:[
+        {label:'Current stock', data:inv.map(i=>i.stock), backgroundColor:hexA(CHART_COLORS.blue,.75), borderRadius:6},
+        {label:'Forecast demand', data:inv.map(i=>i.forecast), backgroundColor:hexA(CHART_COLORS.cyan,.75), borderRadius:6},
+        {label:'Reorder point', data:inv.map(i=>i.reorder), backgroundColor:hexA(CHART_COLORS.warn,.5), borderRadius:6},
+      ]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom', labels:{padding:12, pointStyle:'rectRounded'}}},
+      scales:{x:{...baseScales.x, stacked:false}, y:baseScales.y}}
+  });
+
+  const byDeptTurn = {};
+  inv.forEach(i=>{ byDeptTurn[i.dept]=(byDeptTurn[i.dept]||0)+i.turnover; });
+  makeChart('chInvTurnover',{
+    type:'bar',
+    data:{labels:Object.keys(byDeptTurn),
+      datasets:[{data:Object.values(byDeptTurn).map(v=>+v.toFixed(1)),
+        backgroundColor:Object.values(byDeptTurn).map(v=> v>10? CHART_COLORS.good : v>6? CHART_COLORS.cyan : CHART_COLORS.warn),
+        borderRadius:7}]},
+    options:{responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{legend:{display:false}},
+      scales:{x:{...baseScales.y}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}
+  });
+
+  const tbody = document.getElementById('invTable');
+  if(tbody){
+    tbody.innerHTML = inv.map(i=>`
+      <tr>
+        <td style="font-family:monospace;font-size:11.5px;color:${CHART_COLORS.cyan}">${i.sku}</td>
+        <td><b>${i.name}</b></td>
+        <td>${i.dept}</td>
+        <td>${fmt(i.stock)}</td>
+        <td>${fmt(i.reorder)}</td>
+        <td>${i.turnover}x</td>
+        <td><span class="badge ${i.status==='Healthy'?'g':i.status==='Low'?'w':'b'}">${i.status}</span></td>
+      </tr>`).join('');
+  }
+}
+
+function wireCustomer(){
+  const seg = DataLayer.CUSTOMERS;
+  makeChart('chCustSeg',{
+    type:'doughnut',
+    data:{labels:seg.map(s=>s.segment),
+      datasets:[{data:seg.map(s=>s.share),
+        backgroundColor:[CHART_COLORS.blue,CHART_COLORS.cyan,CHART_COLORS.teal,CHART_COLORS.warn,CHART_COLORS.good],
+        borderColor:'#101a2e', borderWidth:3, hoverOffset:8}]},
+    options:{responsive:true, maintainAspectRatio:false, cutout:'58%',
+      plugins:{legend:{position:'right', labels:{padding:14, font:{size:11}}}}}
+  });
+
+  makeChart('chCustRetention',{
+    type:'bar',
+    data:{labels:seg.map(s=>s.segment),
+      datasets:[{data:seg.map(s=>s.retention),
+        backgroundColor:seg.map(s=> s.retention>80? hexA(CHART_COLORS.good,.8) : s.retention>60? hexA(CHART_COLORS.cyan,.8) : hexA(CHART_COLORS.warn,.8)),
+        borderRadius:7}]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw+'%'}}},
+      scales:{x:{...baseScales.x, ticks:{font:{size:10}}}, y:{...baseScales.y, ticks:{callback:v=>v+'%'}}}}
+  });
+
+  const tbody = document.getElementById('custTable');
+  if(tbody){
+    tbody.innerHTML = seg.map(s=>`
+      <tr>
+        <td><b>${s.segment}</b></td>
+        <td>${s.share}%</td>
+        <td>$${s.avgSpend}</td>
+        <td>${s.retention}%</td>
+        <td><span class="trend ${s.trend>=0?'up':'down'}">${s.trend>=0?'▲':'▼'} ${Math.abs(s.trend)}%</span></td>
+      </tr>`).join('');
+  }
+}
+
+function wireAI(rows){
+  const months = DataLayer.byMonth(rows);
+  const fc = DataLayer.forecast(rows, 6);
+  const histData = months.map(m=>m.value);
+  const fcData = new Array(months.length-1).fill(null);
+  fcData.push(histData[histData.length-1]);
+  fc.forEach(f=>fcData.push(f.value));
+
+  makeChart('chAIForecast',{
+    type:'line',
+    data:{labels:[...months.map(m=>m.label), ...fc.map(f=>f.label)],
+      datasets:[
+        {label:'Actual', data:[...histData, ...new Array(fc.length).fill(null)],
+          borderColor:CHART_COLORS.cyan, backgroundColor:hexA(CHART_COLORS.cyan,.1), fill:true, tension:.4, borderWidth:2.5, pointRadius:0},
+        {label:'Predicted', data:fcData,
+          borderColor:CHART_COLORS.warn, borderDash:[6,5], tension:.4, borderWidth:2.5, pointRadius:3, pointBackgroundColor:CHART_COLORS.warn},
+      ]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom', labels:{padding:14}}},
+      interaction:{intersect:false,mode:'index'}, scales:baseScales}
+  });
+
+  // Anomaly
+  const vals = months.map(m=>m.value);
+  const mean = vals.reduce((a,b)=>a+b,0)/vals.length;
+  const sd = Math.sqrt(vals.reduce((a,b)=>a+(b-mean)**2,0)/vals.length);
+  makeChart('chAIAnomaly',{
+    type:'line',
+    data:{labels:months.map(m=>m.label),
+      datasets:[
+        {label:'Sales', data:vals, borderColor:CHART_COLORS.blue, backgroundColor:hexA(CHART_COLORS.blue,.08), fill:true, tension:.4, borderWidth:2, pointRadius:vals.map(v=> Math.abs(v-mean)>1.4*sd?5:0), pointBackgroundColor:CHART_COLORS.bad, pointBorderColor:CHART_COLORS.bad},
+        {label:'Expected range', data:months.map(()=>mean+sd), borderColor:hexA(CHART_COLORS.good,.5), borderDash:[4,4], pointRadius:0, borderWidth:1, fill:false},
+        {label:'Lower bound', data:months.map(()=>mean-sd), borderColor:hexA(CHART_COLORS.good,.3), borderDash:[4,4], pointRadius:0, borderWidth:1, fill:'-1'},
+      ]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:baseScales}
+  });
+
+  // Inventory risk
+  const inv = DataLayer.INVENTORY;
+  makeChart('chAIRisk',{
+    type:'bar',
+    data:{labels:inv.map(i=>i.name.split(' ').slice(0,2).join(' ')),
+      datasets:[{data:inv.map(i=>{
+        const ratio = i.stock / Math.max(i.forecast,1);
+        return Math.max(5, Math.round((1-ratio)*100));
+      }),
+        backgroundColor:inv.map(i=>{
+          const ratio = i.stock / Math.max(i.forecast,1);
+          return ratio<0.6? hexA(CHART_COLORS.bad,.8) : ratio<1? hexA(CHART_COLORS.warn,.8) : hexA(CHART_COLORS.good,.7);
+        }), borderRadius:7}]},
+    options:{responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>'Stockout risk: '+c.raw+'%'}}},
+      scales:{x:{...baseScales.y, max:100, ticks:{callback:v=>v+'%'}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}
+  });
+}
+
+function wireStrategic(rows){
+  const months = DataLayer.byMonth(rows).slice(-8);
+  makeChart('chStratMarket',{
+    type:'line',
+    data:{labels:months.map(m=>m.label),
+      datasets:[
+        {label:'Our category growth', data:months.map((_,i)=>+(2+Math.sin(i)*2+i*0.6).toFixed(1)), borderColor:CHART_COLORS.cyan, tension:.4, borderWidth:2.5, pointRadius:0},
+        {label:'Market average', data:months.map((_,i)=>+(1.2+Math.cos(i)*1.2+i*0.35).toFixed(1)), borderColor:CHART_COLORS.warn, borderDash:[5,4], tension:.4, borderWidth:2, pointRadius:0},
+      ]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom', labels:{padding:14}}},
+      scales:{x:baseScales.x, y:{...baseScales.y, ticks:{callback:v=>v+'%'}}}}
+  });
+
+  makeChart('chStratCompetitor',{
+    type:'bar',
+    data:{labels:['Walmart','Competitor A','Competitor B','Competitor C','Others'],
+      datasets:[{data:[100,82,68,54,36],
+        backgroundColor:[CHART_COLORS.cyan, hexA(CHART_COLORS.blue,.6), hexA(CHART_COLORS.blue,.45), hexA(CHART_COLORS.blue,.35), hexA(CHART_COLORS.blue,.25)],
+        borderRadius:7}]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false}}, y:baseScales.y}}
+  });
+
+  makeChart('chStratEcon',{
+    type:'line',
+    data:{labels:months.map(m=>m.label),
+      datasets:[
+        {label:'Consumer Confidence', data:months.map((_,i)=>+(95+Math.sin(i)*6+i*0.8).toFixed(1)), borderColor:CHART_COLORS.cyan, tension:.4, borderWidth:2, pointRadius:0},
+        {label:'Inflation Index', data:months.map((_,i)=>+(100+i*0.6+Math.cos(i)*1.2).toFixed(1)), borderColor:CHART_COLORS.warn, tension:.4, borderWidth:2, pointRadius:0},
+        {label:'Employment Index', data:months.map((_,i)=>+(98+Math.sin(i/2)*3+i*0.4).toFixed(1)), borderColor:CHART_COLORS.teal, tension:.4, borderWidth:2, pointRadius:0},
+      ]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom', labels:{padding:12}}},
+      scales:baseScales}
+  });
+
+  makeChart('chStratCompare',{
+    type:'bar',
+    data:{labels:['Revenue','Profit','Transactions','Retention'],
+      datasets:[
+        {label:'Current', data:[100,100,100,100], backgroundColor:hexA(CHART_COLORS.cyan,.85), borderRadius:6},
+        {label:'Prior', data:[92,88,94,97], backgroundColor:hexA(CHART_COLORS.blue,.5), borderRadius:6},
+      ]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom', labels:{padding:12, pointStyle:'rectRounded'}}},
+      scales:{x:{grid:{display:false}}, y:baseScales.y}}
+  });
+
+  // Heatmap
+  const hm = document.getElementById('heatmap');
+  if(hm){
+    const depts = ['Electronics','Grocery','Seasonal','Home','Toys','Apparel'];
+    let html = `<div style="display:grid;grid-template-columns:120px repeat(12,1fr);gap:5px;align-items:center">`;
+    html += `<div></div>`;
+    for(let i=1;i<=12;i++) html += `<div style="text-align:center;font-size:9px;color:var(--text-dim)">M${i}</div>`;
+    depts.forEach((d,di)=>{
+      html += `<div style="font-size:11px;color:var(--text-dim)">${d}</div>`;
+      for(let m=1;m<=12;m++){
+        const intensity = ((Math.sin(di*2 + m*1.3)+1)/2)*0.8 + 0.15;
+        const c = `rgba(${Math.round(34+ (34-37)*intensity)}, ${Math.round(211*intensity)}, ${Math.round(238*intensity)}, ${0.25+intensity*0.75})`;
+        html += `<div class="heat-cell" style="background:${c}" title="${d} · Month ${m}"></div>`;
+      }
+    });
+    html += `</div>`;
+    hm.innerHTML = html;
+  }
+}
+
+/* =========================================================
+   INTERACTIONS
+   ========================================================= */
+// Sidebar nav rendering
+const navEl = document.getElementById('nav');
+navEl.innerHTML = NAV.map(n=>{
+  if(n.group) return `<div class="nav-group-label">${n.group}</div>`;
+  return `<div class="nav-item" data-page="${n.id}" onclick="go('${n.id}')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${n.icon}"/></svg>
+    <span>${n.label}</span>
+  </div>`;
+}).join('');
+
+// Sidebar toggle
+const sidebar = document.getElementById('sidebar');
+document.getElementById('toggleBtn').onclick = ()=>{
+  if(window.innerWidth<=860) sidebar.classList.toggle('mobile-open');
+  else sidebar.classList.toggle('collapsed');
+};
+
+// Date filter
+document.getElementById('dateRange').onchange = ()=>{
+  renderCurrent();
+  showToast('Filters updated — charts refreshed','🔄','ok');
+};
+
+// Global search
+document.getElementById('globalSearch').oninput = (e)=>{
+  const q = e.target.value.trim();
+  if(q.length<2) return;
+  const results = DataLayer.search(q);
+  if(results.length) showToast(`Found ${results.length} matching records`,'🔍','ok');
+};
+
+// Notifications
+const notifPanel = document.getElementById('notifPanel');
+const NOTIFS = [
+  {i:'📉',c:CHART_COLORS.bad,t:'Low stock alert',p:'Patio Heater (WM-SE-3391) below reorder point.',time:'2 min ago'},
+  {i:'✨',c:CHART_COLORS.cyan,t:'AI insight ready',p:'Holiday lift is 14% above baseline this cycle.',time:'18 min ago'},
+  {i:'📊',c:CHART_COLORS.teal,t:'Forecast updated',p:'8-week sales forecast refreshed with new data.',time:'1 hr ago'},
+  {i:'⚠️',c:CHART_COLORS.warn,t:'Data quality warning',p:'Third-party demographics has 12.4% nulls.',time:'3 hr ago'},
+];
+notifPanel.innerHTML = NOTIFS.map(n=>`
+  <div class="notif-item" onclick="showToast('${n.t}','${n.i}','ok')">
+    <div class="n-icon" style="background:${hexA(n.c,.15)};color:${n.c}">${n.i}</div>
+    <div><h5>${n.t}</h5><p>${n.p}</p><span class="time">${n.time}</span></div>
+  </div>`).join('');
+document.getElementById('notifBtn').onclick = (e)=>{ e.stopPropagation(); notifPanel.classList.toggle('open'); };
+document.addEventListener('click', ()=> notifPanel.classList.remove('open'));
+
+// Export
+document.getElementById('exportBtn').onclick = ()=> downloadReport(currentPage);
+function downloadReport(page){
+  let csv = 'Walmart Smart Analytics — '+page.toUpperCase()+' REPORT\nGenerated,'+new Date().toISOString()+'\n\n';
+  const rows = DataLayer.filtered(document.getElementById('dateRange').value);
+  const k = DataLayer.kpis(rows);
+  csv += 'KPI,Value\n';
+  csv += 'Total Revenue,'+k.totalRevenue.toFixed(2)+'\n';
+  csv += 'Total Sales,'+k.totalSales+'\n';
+  csv += 'Profit Margin,'+k.profitMargin.toFixed(1)+'%\n';
+  csv += 'Transactions,'+k.totalTransactions+'\n\n';
+  csv += 'Date,Department,Region,Sales,IsHoliday\n';
+  rows.slice(0,500).forEach(r=>{
+    csv += `${r.date},${r.department},${r.region},${r.sales},${r.isHoliday}\n`;
+  });
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=`walmart-analytics-${page}-${Date.now()}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast('Report downloaded as CSV','⬇','ok');
+}
+
+// Modal / drill down
+function drillDown(label, value){
+  document.getElementById('modalBody').innerHTML = `
+    <span class="modal-close" onclick="closeModal()">×</span>
+    <h3>${label} — Drill-down</h3>
+    <p class="m-sub">Detailed breakdown of the selected metric</p>
+    <div class="kpi-grid" style="grid-template-columns:1fr 1fr">
+      <div class="kpi"><div class="kpi-label">Segment Revenue</div><div class="kpi-value">$${fmt(value)}</div></div>
+      <div class="kpi"><div class="kpi-label">Contribution</div><div class="kpi-value">${(value/DataLayer.TIMESERIES.reduce((a,b)=>a+b.sales,0)*100).toFixed(2)}%</div></div>
+    </div>
+    <p style="font-size:12.5px;color:var(--text-dim);line-height:1.6">
+      The <b style="color:var(--cyan)">${label}</b> category drives a material share of total revenue.
+      AI recommends continued allocation of inventory and promotions during high-demand weeks,
+      particularly around holiday cycles where demand uplift is most pronounced.
+    </p>
+    <div style="margin-top:16px;display:flex;gap:9px">
+      <button class="btn primary" onclick="closeModal();showToast('Detail view opened','🔍','ok')">Open full analytics</button>
+      <button class="btn" onclick="closeModal()">Close</button>
+    </div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
+document.getElementById('modalBg').onclick = (e)=>{ if(e.target.id==='modalBg') closeModal(); };
+
+// Reorder action
+function reorderAll(){
+  const low = DataLayer.INVENTORY.filter(i=>i.status!=='Healthy');
+  showToast(`Reorder placed for ${low.length} low-stock SKUs`,'📦','ok');
+  low.forEach(i=>i.status='Healthy');
+  if(currentPage==='inventory') renderCurrent();
+}
+
+// Chat
+function sendChat(){
+  const input = document.getElementById('chatInput');
+  const log = document.getElementById('chatLog');
+  const q = input.value.trim();
+  if(!q) return;
+  log.insertAdjacentHTML('beforeend', `<div class="msg user">${escapeHtml(q)}</div>`);
+  input.value='';
+  log.scrollTop = log.scrollHeight;
+  setTimeout(()=>{
+    const reply = answer(q);
+    log.insertAdjacentHTML('beforeend', `<div class="msg bot">${reply}</div>`);
+    log.scrollTop = log.scrollHeight;
+  }, 550);
+}
+function answer(q){
+  q = q.toLowerCase();
+  const rows = DataLayer.filtered(document.getElementById('dateRange').value);
+  const k = DataLayer.kpis(rows);
+  const dept = DataLayer.byDept(rows);
+  if(q.includes('revenue') || q.includes('sales') || q.includes('trend')){
+    const months = DataLayer.byMonth(rows);
+    const last = months[months.length-1];
+    const prev = months[months.length-2];
+    const chg = prev? ((last.value/prev.value-1)*100).toFixed(1):'N/A';
+    return `Total revenue for the selected period is <b style="color:var(--cyan)">$${fmt(k.totalRevenue)}</b>. The latest month shows <b>${chg}%</b> change vs the prior month. The top department is <b>${dept[0].label}</b> at $${fmt(dept[0].value)}.`;
+  }
+  if(q.includes('inventory') || q.includes('stock') || q.includes('reorder')){
+    const low = DataLayer.INVENTORY.filter(i=>i.status!=='Healthy');
+    return `I detect <b>${low.length}</b> SKUs at or below reorder thresholds: ${low.map(i=>i.name).join(', ')}. AI recommends reorder within 5 days for critical items (Patio Heater & Organic Coffee).`;
+  }
+  if(q.includes('forecast') || q.includes('predict')){
+    const fc = DataLayer.forecast(rows,4);
+    return `The 4-week AI forecast projects revenue of <b style="color:var(--cyan)">$${fmt(fc.reduce((a,b)=>a+b.value,0))}</b>. Confidence: 76%. Holiday weeks are expected to run ~14% above baseline.`;
+  }
+  if(q.includes('customer') || q.includes('segment') || q.includes('retention')){
+    return `Premium customers have the highest retention (89%) and fastest growth (+5.4%). Value Seekers represent the largest share (34%). Consider an exclusive loyalty tier for Premium to capture high spend.`;
+  }
+  if(q.includes('risk') || q.includes('anomaly') || q.includes('unusual')){
+    return `Anomaly detection flags demand spikes in Seasonal & Toys as expected holiday-season behavior. However, <b>WM-SE-3391</b> shows a stockout risk of ~60% in the next 30 days — prioritize replenishment.`;
+  }
+  return `Based on current data: revenue is <b style="color:var(--cyan)">$${fmt(k.totalRevenue)}</b>, margin is <b>${k.profitMargin.toFixed(1)}%</b>, and the top department is <b>${dept[0].label}</b>. Ask me about revenue trends, inventory risk, forecasts, or customer segments.`;
+}
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Toast
+function showToast(msg, icon='✨', type='ok'){
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className='toast';
+  const color = type==='ok'?CHART_COLORS.good:type==='warn'?CHART_COLORS.warn:CHART_COLORS.cyan;
+  t.innerHTML = `<div class="ic" style="background:${hexA(color,.15)};color:${color}">${icon}</div><div>${escapeHtml(msg)}</div>`;
+  wrap.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(40px)'; t.style.transition='.3s'; setTimeout(()=>t.remove(),300); }, 3200);
+}
+
+/* =========================================================
+   LIVE-LOOKING DATA UPDATES
+   ========================================================= */
+setInterval(()=>{
+  // subtle live tick on KPIs
+  const statusEl = document.getElementById('aiStatusTxt');
+  if(statusEl){
+    const t = new Date();
+    statusEl.textContent = `AI Engine Online · ${t.toLocaleTimeString()}`;
+  }
+}, 1000);
+
+// periodic simulated "live" notification
+setInterval(()=>{
+  if(Math.random()<0.3){
+    const msgs = [
+      ['New transaction batch received','💳','ok'],
+      ['Inventory sync completed','📦','ok'],
+      ['AI insight refreshed','✨','ok'],
+      ['Forecast recalculated','📈','ok'],
+    ];
+    const m = msgs[Math.floor(Math.random()*msgs.length)];
+    showToast(m[0], m[1], m[2]);
+  }
+}, 18000);
+
+/* =========================================================
+   INIT
+   ========================================================= */
+window.addEventListener('DOMContentLoaded', ()=>{
+  go('overview');
+  // welcome
+  setTimeout(()=> showToast('Dashboard loaded — demonstration data active','🚀','ok'), 700);
+});
+window.addEventListener('resize', ()=>{
+  Object.values(chartRegistry).forEach(c=>c.resize());
+});
+</script>
+</body>
+</html>
